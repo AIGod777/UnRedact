@@ -41,39 +41,39 @@ export default function ResultsView({
   const getSegmentClasses = (type: string) => {
     switch (type) {
       case 'recovered':
-        return 'bg-emerald-500/20 text-emerald-400 border-b-2 border-emerald-500/50 hover:bg-emerald-500/30';
+        return 'bg-emerald-500/20 text-emerald-400 border-b-2 border-emerald-500/50 hover:bg-emerald-500/30 active:bg-emerald-500/35';
       case 'inferred':
-        return 'bg-blue-500/20 text-blue-400 border-b-2 border-blue-500/50 hover:bg-blue-500/30';
+        return 'bg-blue-500/20 text-blue-400 border-b-2 border-blue-500/50 hover:bg-blue-500/30 active:bg-blue-500/35';
       case 'guessed':
-        return 'bg-amber-500/20 text-amber-400 border-b-2 border-amber-500/50 hover:bg-amber-500/30 italic';
+        return 'bg-amber-500/20 text-amber-400 border-b-2 border-amber-500/50 hover:bg-amber-500/30 active:bg-amber-500/35 italic';
       default:
         return '';
     }
   };
 
   return (
-    <div className="rounded-2xl bg-zinc-900 border border-zinc-800 overflow-hidden flex flex-col h-[600px] lg:h-[800px]">
+    <div className="rounded-xl sm:rounded-2xl bg-zinc-900 border border-zinc-800 overflow-hidden flex flex-col h-[450px] sm:h-[600px] lg:h-[800px]">
       {/* Tab Bar */}
       <div className="flex border-b border-zinc-800 bg-zinc-900/50">
         {(['reconstructed', 'raw', 'forensics'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-4 text-sm font-medium transition-colors ${
+            className={`flex-1 py-3 sm:py-4 text-[11px] sm:text-sm font-medium transition-colors ${
               activeTab === tab
                 ? 'text-emerald-400 border-b-2 border-emerald-400 bg-emerald-500/5'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                : 'text-zinc-400 hover:text-zinc-200 active:text-zinc-200'
             }`}
           >
-            {tab === 'reconstructed' ? 'Reconstructed' : tab === 'raw' ? 'Raw Text' : 'Forensic Signals'}
+            {tab === 'reconstructed' ? 'Result' : tab === 'raw' ? 'Raw' : 'Forensics'}
           </button>
         ))}
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-8 custom-scrollbar relative">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar relative">
         {activeTab === 'reconstructed' ? (
-          <div className="prose prose-invert prose-zinc max-w-none prose-p:leading-relaxed">
+          <div className="prose prose-invert prose-zinc max-w-none prose-p:leading-relaxed prose-p:text-sm sm:prose-p:text-base">
             {parsedSegments.map((part, i) => {
               if (part.type === 'text') {
                 return <Markdown key={i}>{part.content}</Markdown>;
@@ -91,7 +91,7 @@ export default function ResultsView({
                       alternatives: part.alternatives,
                     })
                   }
-                  className={`inline-block px-1 rounded cursor-pointer transition-all hover:ring-2 hover:ring-offset-2 hover:ring-offset-zinc-900 ${getSegmentClasses(part.type)}`}
+                  className={`inline-block px-1 rounded cursor-pointer transition-all ${getSegmentClasses(part.type)}`}
                 >
                   {part.content}
                 </button>
@@ -99,7 +99,7 @@ export default function ResultsView({
             })}
           </div>
         ) : activeTab === 'raw' ? (
-          <pre className="text-xs font-mono text-zinc-400 whitespace-pre-wrap break-words">
+          <pre className="text-[10px] sm:text-xs font-mono text-zinc-400 whitespace-pre-wrap break-words">
             {rawText || 'No raw text found in the document layer.'}
           </pre>
         ) : (
@@ -113,64 +113,53 @@ export default function ResultsView({
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="absolute bottom-8 right-8 w-80 p-5 rounded-2xl bg-zinc-800 border border-zinc-700 shadow-2xl z-20"
+              className="fixed sm:absolute bottom-2 left-2 right-2 sm:bottom-6 sm:right-6 sm:left-auto sm:w-72 lg:w-80 p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-zinc-800 border border-zinc-700 shadow-2xl z-30"
             >
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Info
-                    className={`w-4 h-4 ${
-                      selectedRedaction.type === 'recovered'
-                        ? 'text-emerald-400'
-                        : selectedRedaction.type === 'inferred'
-                          ? 'text-blue-400'
-                          : 'text-amber-400'
+                    className={`w-3.5 h-3.5 ${
+                      selectedRedaction.type === 'recovered' ? 'text-emerald-400'
+                        : selectedRedaction.type === 'inferred' ? 'text-blue-400'
+                        : 'text-amber-400'
                     }`}
                   />
-                  <h4 className="text-sm font-semibold uppercase tracking-wider">
-                    {selectedRedaction.type === 'recovered'
-                      ? 'Recovered'
-                      : selectedRedaction.type === 'inferred'
-                        ? 'Inferred'
-                        : 'AI Guess'}
+                  <h4 className="text-xs font-semibold uppercase tracking-wider">
+                    {selectedRedaction.type === 'recovered' ? 'Recovered'
+                      : selectedRedaction.type === 'inferred' ? 'Inferred'
+                      : 'AI Guess'}
                   </h4>
                 </div>
-                <button
-                  onClick={() => setSelectedRedaction(null)}
-                  className="text-zinc-500 hover:text-zinc-300 transition-colors"
-                >
+                <button onClick={() => setSelectedRedaction(null)} className="text-zinc-500 hover:text-zinc-300 active:text-zinc-200 p-1 -mr-1">
                   <XCircle className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="mb-4">
-                <p className="text-xs text-zinc-500 mb-1 uppercase font-bold">Content</p>
-                <p className="text-sm text-zinc-200 font-medium leading-relaxed">
-                  &ldquo;{selectedRedaction.content}&rdquo;
-                </p>
+              <div className="mb-3">
+                <p className="text-[10px] text-zinc-500 uppercase font-bold mb-0.5">Content</p>
+                <p className="text-xs sm:text-sm text-zinc-200 font-medium">&ldquo;{selectedRedaction.content}&rdquo;</p>
               </div>
 
               {selectedRedaction.method && (
-                <div className="mb-4">
-                  <p className="text-xs text-zinc-500 mb-1 uppercase font-bold">Recovery Method</p>
-                  <p className="text-sm text-zinc-300 leading-relaxed">{selectedRedaction.method}</p>
+                <div className="mb-3">
+                  <p className="text-[10px] text-zinc-500 uppercase font-bold mb-0.5">Method</p>
+                  <p className="text-xs text-zinc-300">{selectedRedaction.method}</p>
                 </div>
               )}
 
               {selectedRedaction.explanation && (
-                <div className="mb-4">
-                  <p className="text-xs text-zinc-500 mb-1 uppercase font-bold">AI Explanation</p>
-                  <p className="text-sm text-zinc-300 leading-relaxed">{selectedRedaction.explanation}</p>
+                <div className="mb-3">
+                  <p className="text-[10px] text-zinc-500 uppercase font-bold mb-0.5">Explanation</p>
+                  <p className="text-xs text-zinc-300 leading-relaxed">{selectedRedaction.explanation}</p>
                 </div>
               )}
 
               {selectedRedaction.alternatives && selectedRedaction.alternatives.length > 0 && (
-                <div className="mb-4">
-                  <p className="text-xs text-zinc-500 mb-1 uppercase font-bold">Alternatives</p>
-                  <div className="flex flex-wrap gap-2">
+                <div className="mb-3">
+                  <p className="text-[10px] text-zinc-500 uppercase font-bold mb-1">Alternatives</p>
+                  <div className="flex flex-wrap gap-1.5">
                     {selectedRedaction.alternatives.map((alt: string, i: number) => (
-                      <span key={i} className="px-2 py-1 bg-zinc-900 rounded text-xs text-zinc-300 border border-zinc-700">
-                        {alt}
-                      </span>
+                      <span key={i} className="px-2 py-0.5 bg-zinc-900 rounded text-[10px] text-zinc-300 border border-zinc-700">{alt}</span>
                     ))}
                   </div>
                 </div>
@@ -178,29 +167,21 @@ export default function ResultsView({
 
               <div>
                 <div className="flex justify-between items-end mb-1">
-                  <p className="text-xs text-zinc-500 uppercase font-bold">Confidence</p>
-                  <p
-                    className={`text-sm font-bold ${
-                      selectedRedaction.score > 80
-                        ? 'text-emerald-400'
-                        : selectedRedaction.score > 50
-                          ? 'text-amber-400'
-                          : 'text-red-400'
-                    }`}
-                  >
-                    {selectedRedaction.score}%
-                  </p>
+                  <p className="text-[10px] text-zinc-500 uppercase font-bold">Confidence</p>
+                  <p className={`text-xs font-bold ${
+                    selectedRedaction.score > 80 ? 'text-emerald-400'
+                      : selectedRedaction.score > 50 ? 'text-amber-400'
+                      : 'text-red-400'
+                  }`}>{selectedRedaction.score}%</p>
                 </div>
                 <div className="w-full bg-zinc-900 rounded-full h-1.5 overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${selectedRedaction.score}%` }}
                     className={`h-full rounded-full ${
-                      selectedRedaction.score > 80
-                        ? 'bg-emerald-500'
-                        : selectedRedaction.score > 50
-                          ? 'bg-amber-500'
-                          : 'bg-red-500'
+                      selectedRedaction.score > 80 ? 'bg-emerald-500'
+                        : selectedRedaction.score > 50 ? 'bg-amber-500'
+                        : 'bg-red-500'
                     }`}
                   />
                 </div>
@@ -214,191 +195,155 @@ export default function ResultsView({
 }
 
 /**
- * Forensic Signals tab — shows raw forensic extraction data.
+ * Forensic Signals tab
  */
 function ForensicsTab({ report }: { report: ForensicReport | null }) {
   if (!report) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-zinc-500 gap-3">
-        <AlertTriangle className="w-8 h-8" />
-        <p className="text-sm">Forensic data not available for this item.</p>
-        <p className="text-xs">Re-analyze the PDF to generate forensic signals.</p>
+      <div className="flex flex-col items-center justify-center h-full text-zinc-500 gap-2 py-12">
+        <AlertTriangle className="w-6 h-6" />
+        <p className="text-xs">Forensic data not available.</p>
+        <p className="text-[10px]">Re-analyze the PDF to generate signals.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Metadata */}
       {(report.metadata.author || report.metadata.creator || report.metadata.producer) && (
-        <ForensicSection
-          icon={<FileText className="w-4 h-4 text-zinc-400" />}
-          title="Document Metadata"
-        >
-          <div className="grid grid-cols-2 gap-3">
-            {report.metadata.author && <MetadataField label="Author" value={report.metadata.author} />}
-            {report.metadata.creator && <MetadataField label="Creator" value={report.metadata.creator} />}
-            {report.metadata.producer && <MetadataField label="Producer" value={report.metadata.producer} />}
-            {report.metadata.creationDate && <MetadataField label="Created" value={formatPdfDate(report.metadata.creationDate)} />}
-            {report.metadata.modificationDate && <MetadataField label="Modified" value={formatPdfDate(report.metadata.modificationDate)} />}
-            <MetadataField label="Pages" value={String(report.metadata.pageCount)} />
+        <Section icon={<FileText className="w-3.5 h-3.5 text-zinc-400" />} title="Metadata">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            {report.metadata.author && <Field label="Author" value={report.metadata.author} />}
+            {report.metadata.creator && <Field label="Creator" value={report.metadata.creator} />}
+            {report.metadata.producer && <Field label="Producer" value={report.metadata.producer} />}
+            {report.metadata.creationDate && <Field label="Created" value={fmtDate(report.metadata.creationDate)} />}
+            {report.metadata.modificationDate && <Field label="Modified" value={fmtDate(report.metadata.modificationDate)} />}
+            <Field label="Pages" value={String(report.metadata.pageCount)} />
           </div>
-        </ForensicSection>
+        </Section>
       )}
 
       {/* Redaction Boxes */}
-      <ForensicSection
-        icon={<Layers className="w-4 h-4 text-red-400" />}
+      <Section
+        icon={<Layers className="w-3.5 h-3.5 text-red-400" />}
         title={`Redaction Boxes (${report.redactionBoxes.length})`}
         badge={report.redactionBoxes.length > 0 ? 'DETECTED' : undefined}
         badgeColor="bg-red-500/20 text-red-400"
       >
         {report.redactionBoxes.length === 0 ? (
-          <p className="text-xs text-zinc-500">No filled black rectangles detected.</p>
+          <p className="text-[11px] text-zinc-500">No black rectangles detected.</p>
         ) : (
-          <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
+          <div className="space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar">
             {report.redactionBoxes.map((box, i) => (
-              <div key={i} className="flex items-center justify-between text-xs px-3 py-2 bg-zinc-800/50 rounded-lg">
+              <div key={i} className="flex items-center justify-between text-[10px] sm:text-xs px-2.5 py-1.5 bg-zinc-800/50 rounded-lg">
                 <span className="text-zinc-400">Page {box.page}</span>
-                <span className="font-mono text-zinc-500">
-                  ({Math.round(box.x)}, {Math.round(box.y)}) — {Math.round(box.width)}×{Math.round(box.height)}px
-                </span>
+                <span className="font-mono text-zinc-500">{Math.round(box.width)}×{Math.round(box.height)}</span>
               </div>
             ))}
           </div>
         )}
-      </ForensicSection>
+      </Section>
 
-      {/* Text Under Redactions — KEY SIGNAL */}
-      <ForensicSection
-        icon={<Search className="w-4 h-4 text-emerald-400" />}
-        title={`Text Under Redactions (${report.textUnderRedactions.length})`}
+      {/* Text Under Redactions */}
+      <Section
+        icon={<Search className="w-3.5 h-3.5 text-emerald-400" />}
+        title={`Hidden Text (${report.textUnderRedactions.length})`}
         badge={report.textUnderRedactions.length > 0 ? 'RECOVERED' : undefined}
         badgeColor="bg-emerald-500/20 text-emerald-400"
       >
         {report.textUnderRedactions.length === 0 ? (
-          <p className="text-xs text-zinc-500">No text found directly under redaction boxes. The redaction may have properly removed the underlying text.</p>
+          <p className="text-[11px] text-zinc-500">No text found under redaction boxes.</p>
         ) : (
-          <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+          <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
             {report.textUnderRedactions.map((item, i) => (
-              <div key={i} className="px-3 py-2 bg-emerald-500/5 border border-emerald-500/10 rounded-lg">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-zinc-400">Page {item.textItem.page}</span>
-                  <span className="text-xs font-medium text-emerald-400">{item.overlapPercent}% overlap</span>
+              <div key={i} className="px-2.5 py-2 bg-emerald-500/5 border border-emerald-500/10 rounded-lg">
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-[10px] text-zinc-400">Pg {item.textItem.page}</span>
+                  <span className="text-[10px] font-medium text-emerald-400">{item.overlapPercent}%</span>
                 </div>
-                <p className="text-sm text-emerald-300 font-medium">&ldquo;{item.text}&rdquo;</p>
+                <p className="text-xs text-emerald-300 font-medium">&ldquo;{item.text}&rdquo;</p>
               </div>
             ))}
           </div>
         )}
-      </ForensicSection>
+      </Section>
 
       {/* Version History */}
-      <ForensicSection
-        icon={<History className="w-4 h-4 text-amber-400" />}
-        title="Version History"
-        badge={report.versionInfo.hasMultipleVersions ? 'MULTIPLE VERSIONS' : undefined}
+      <Section
+        icon={<History className="w-3.5 h-3.5 text-amber-400" />}
+        title="Versions"
+        badge={report.versionInfo.hasMultipleVersions ? 'MULTIPLE' : undefined}
         badgeColor="bg-amber-500/20 text-amber-400"
       >
-        <p className="text-xs text-zinc-400">
+        <p className="text-[11px] text-zinc-400">
           {report.versionInfo.hasMultipleVersions
-            ? `${report.versionInfo.count} incremental saves detected. This PDF contains previous versions that may include content from before redaction was applied.`
-            : 'Single version — no incremental save history found.'}
+            ? `${report.versionInfo.count} versions found — may contain pre-redaction content.`
+            : 'Single version — no history.'}
         </p>
-      </ForensicSection>
+      </Section>
 
       {/* Orphaned Strings */}
-      <ForensicSection
-        icon={<Database className="w-4 h-4 text-blue-400" />}
-        title={`Orphaned Strings (${report.orphanedStrings.length})`}
-        badge={report.orphanedStrings.length > 0 ? 'FOUND' : undefined}
-        badgeColor="bg-blue-500/20 text-blue-400"
-      >
-        {report.orphanedStrings.length === 0 ? (
-          <p className="text-xs text-zinc-500">No orphaned text strings found in the raw PDF binary.</p>
-        ) : (
-          <>
-            <p className="text-xs text-zinc-500 mb-3">
-              These strings are embedded in the raw PDF but may not be displayed. Some could be remnants of deleted content.
-            </p>
-            <div className="space-y-1.5 max-h-40 overflow-y-auto custom-scrollbar">
-              {report.orphanedStrings.slice(0, 30).map((str, i) => (
-                <div key={i} className="px-3 py-1.5 bg-zinc-800/50 rounded text-xs font-mono text-zinc-400 truncate">
-                  {str}
-                </div>
-              ))}
-              {report.orphanedStrings.length > 30 && (
-                <p className="text-xs text-zinc-500 mt-2">+{report.orphanedStrings.length - 30} more...</p>
-              )}
-            </div>
-          </>
-        )}
-      </ForensicSection>
+      {report.orphanedStrings.length > 0 && (
+        <Section
+          icon={<Database className="w-3.5 h-3.5 text-blue-400" />}
+          title={`Orphaned (${report.orphanedStrings.length})`}
+          badge="FOUND"
+          badgeColor="bg-blue-500/20 text-blue-400"
+        >
+          <div className="space-y-1 max-h-32 overflow-y-auto custom-scrollbar">
+            {report.orphanedStrings.slice(0, 20).map((str, i) => (
+              <div key={i} className="px-2.5 py-1 bg-zinc-800/50 rounded text-[10px] font-mono text-zinc-400 truncate">{str}</div>
+            ))}
+            {report.orphanedStrings.length > 20 && (
+              <p className="text-[10px] text-zinc-500">+{report.orphanedStrings.length - 20} more</p>
+            )}
+          </div>
+        </Section>
+      )}
 
       {/* Annotations */}
       {report.annotations.length > 0 && (
-        <ForensicSection
-          icon={<Layers className="w-4 h-4 text-purple-400" />}
-          title={`Annotations (${report.annotations.length})`}
-        >
-          <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
+        <Section icon={<Layers className="w-3.5 h-3.5 text-purple-400" />} title={`Annotations (${report.annotations.length})`}>
+          <div className="space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar">
             {report.annotations.map((ann, i) => (
-              <div key={i} className="flex items-center justify-between text-xs px-3 py-2 bg-zinc-800/50 rounded-lg">
-                <span className="text-zinc-400">Page {ann.page} — {ann.subtype}</span>
-                {ann.contents && <span className="text-zinc-300 truncate ml-2 max-w-[200px]">{ann.contents}</span>}
+              <div key={i} className="text-[10px] sm:text-xs px-2.5 py-1.5 bg-zinc-800/50 rounded-lg text-zinc-400">
+                Pg {ann.page} — {ann.subtype}{ann.contents ? `: ${ann.contents}` : ''}
               </div>
             ))}
           </div>
-        </ForensicSection>
+        </Section>
       )}
     </div>
   );
 }
 
-function ForensicSection({
-  icon,
-  title,
-  badge,
-  badgeColor,
-  children,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  badge?: string;
-  badgeColor?: string;
-  children: React.ReactNode;
+function Section({ icon, title, badge, badgeColor, children }: {
+  icon: React.ReactNode; title: string; badge?: string; badgeColor?: string; children: React.ReactNode;
 }) {
   return (
     <div>
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-2.5">
         {icon}
-        <h4 className="text-sm font-semibold text-zinc-200">{title}</h4>
-        {badge && (
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${badgeColor}`}>
-            {badge}
-          </span>
-        )}
+        <h4 className="text-xs font-semibold text-zinc-200">{title}</h4>
+        {badge && <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${badgeColor}`}>{badge}</span>}
       </div>
       {children}
     </div>
   );
 }
 
-function MetadataField({ label, value }: { label: string; value: string }) {
+function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10px] text-zinc-500 uppercase font-bold mb-0.5">{label}</p>
-      <p className="text-xs text-zinc-300 truncate">{value}</p>
+      <p className="text-[9px] text-zinc-500 uppercase font-bold mb-0.5">{label}</p>
+      <p className="text-[11px] text-zinc-300 truncate">{value}</p>
     </div>
   );
 }
 
-function formatPdfDate(dateStr: string): string {
-  // PDF dates: D:YYYYMMDDHHmmSS+HH'mm'
-  const match = dateStr.match(/D:(\d{4})(\d{2})(\d{2})(\d{2})?(\d{2})?(\d{2})?/);
-  if (match) {
-    const [, y, m, d, h, min] = match;
-    return `${y}-${m}-${d}${h ? ` ${h}:${min || '00'}` : ''}`;
-  }
-  return dateStr;
+function fmtDate(d: string): string {
+  const m = d.match(/D:(\d{4})(\d{2})(\d{2})(\d{2})?(\d{2})?/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}${m[4] ? ` ${m[4]}:${m[5] || '00'}` : ''}`;
+  return d;
 }

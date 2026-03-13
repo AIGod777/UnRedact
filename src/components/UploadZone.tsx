@@ -11,54 +11,12 @@ interface UploadZoneProps {
 }
 
 const FEATURES = [
-  {
-    icon: Search,
-    title: 'Text-Under-Box Detection',
-    desc: 'Maps text hidden directly beneath redaction rectangles',
-    color: 'text-emerald-400',
-    bg: 'bg-emerald-500/10',
-    border: 'border-emerald-500/20',
-  },
-  {
-    icon: Layers,
-    title: 'Redaction Box Scanning',
-    desc: 'Detects filled black rectangles via PDF operator analysis',
-    color: 'text-red-400',
-    bg: 'bg-red-500/10',
-    border: 'border-red-500/20',
-  },
-  {
-    icon: History,
-    title: 'Version History Recovery',
-    desc: 'Detects incremental saves to recover pre-redaction content',
-    color: 'text-amber-400',
-    bg: 'bg-amber-500/10',
-    border: 'border-amber-500/20',
-  },
-  {
-    icon: Database,
-    title: 'Orphaned String Extraction',
-    desc: 'Scans raw PDF binary for deleted but lingering text',
-    color: 'text-blue-400',
-    bg: 'bg-blue-500/10',
-    border: 'border-blue-500/20',
-  },
-  {
-    icon: FileText,
-    title: 'Metadata & Annotations',
-    desc: 'Extracts author info, annotations, and document properties',
-    color: 'text-purple-400',
-    bg: 'bg-purple-500/10',
-    border: 'border-purple-500/20',
-  },
-  {
-    icon: Cpu,
-    title: 'AI-Powered Reconstruction',
-    desc: 'Gemini AI fuses all signals to reconstruct the document',
-    color: 'text-cyan-400',
-    bg: 'bg-cyan-500/10',
-    border: 'border-cyan-500/20',
-  },
+  { icon: Search, title: 'Text Recovery', desc: 'Finds text hidden under black boxes', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+  { icon: Layers, title: 'Box Detection', desc: 'Scans for redaction rectangles', color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20' },
+  { icon: History, title: 'Version Recovery', desc: 'Recovers pre-redaction versions', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+  { icon: Database, title: 'Orphaned Data', desc: 'Scans binary for deleted text', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+  { icon: FileText, title: 'Metadata', desc: 'Extracts author & doc info', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
+  { icon: Cpu, title: 'AI Analysis', desc: 'Gemini reconstructs content', color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
 ];
 
 export default function UploadZone({ fileInputRef, error, hasError, onFileSelect }: UploadZoneProps) {
@@ -82,65 +40,62 @@ export default function UploadZone({ fileInputRef, error, hasError, onFileSelect
       e.stopPropagation();
       setIsDragOver(false);
       const droppedFile = e.dataTransfer.files?.[0];
-      if (droppedFile) {
-        onFileSelect(droppedFile);
-      }
+      if (droppedFile) onFileSelect(droppedFile);
     },
     [onFileSelect]
   );
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-2xl mx-auto px-1">
       {/* Hero */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="text-center mb-10"
+        transition={{ duration: 0.5 }}
+        className="text-center mb-6 sm:mb-10"
       >
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-6">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] sm:text-xs font-semibold mb-4 sm:mb-6">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           6-Layer Forensic Analysis
         </div>
-        <h2 className="text-4xl font-bold tracking-tight mb-4 bg-gradient-to-b from-zinc-100 to-zinc-400 bg-clip-text text-transparent">
+        <h2 className="text-2xl sm:text-4xl font-bold tracking-tight mb-3 bg-gradient-to-b from-zinc-100 to-zinc-400 bg-clip-text text-transparent">
           Reveal What's Hidden
         </h2>
-        <p className="text-zinc-400 text-sm leading-relaxed max-w-xl mx-auto">
-          Upload a redacted PDF and our multi-layer forensic pipeline will extract buried text,
-          detect redaction boxes, recover document versions, and use AI to reconstruct the original content.
+        <p className="text-zinc-400 text-xs sm:text-sm leading-relaxed max-w-xl mx-auto px-2">
+          Upload a redacted PDF. Our forensic pipeline finds buried text, detects redaction boxes, and uses AI to reconstruct the original.
         </p>
       </motion.div>
 
       {/* Upload Zone */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.1 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
         onClick={() => fileInputRef.current?.click()}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className="relative group cursor-pointer mb-10"
+        className="relative group cursor-pointer mb-6 sm:mb-10"
       >
-        <div className={`absolute inset-0 rounded-3xl transition-opacity duration-300 ${isDragOver ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+        <div className={`absolute inset-0 rounded-2xl sm:rounded-3xl transition-opacity duration-300 ${isDragOver ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
           style={{ background: 'radial-gradient(ellipse at center, rgba(16,185,129,0.08) 0%, transparent 70%)' }}
         />
-        <div className={`border-2 border-dashed rounded-3xl p-10 text-center transition-all duration-300 bg-zinc-900/30 backdrop-blur-sm ${
+        <div className={`border-2 border-dashed rounded-2xl sm:rounded-3xl p-8 sm:p-10 text-center transition-all duration-300 bg-zinc-900/30 ${
           isDragOver
             ? 'border-emerald-500/70 bg-emerald-500/5 scale-[1.01]'
             : 'border-zinc-800 hover:border-emerald-500/40'
         }`}>
-          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 border transition-all duration-300 ${
+          <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-4 border transition-all duration-300 ${
             isDragOver
               ? 'bg-emerald-500/20 border-emerald-500/30 scale-110'
               : 'bg-zinc-900 border-zinc-800 group-hover:scale-110 group-hover:border-emerald-500/30'
           }`}>
-            <UploadCloud className={`w-7 h-7 transition-colors ${isDragOver ? 'text-emerald-400' : 'text-zinc-400 group-hover:text-emerald-400'}`} />
+            <UploadCloud className={`w-6 h-6 sm:w-7 sm:h-7 transition-colors ${isDragOver ? 'text-emerald-400' : 'text-zinc-400 group-hover:text-emerald-400'}`} />
           </div>
-          <h3 className="text-lg font-semibold mb-1">
-            {isDragOver ? 'Drop your PDF here' : 'Click or drag to upload'}
+          <h3 className="text-base sm:text-lg font-semibold mb-1">
+            {isDragOver ? 'Drop your PDF here' : 'Tap to upload PDF'}
           </h3>
-          <p className="text-sm text-zinc-500">PDF files up to {MAX_FILE_SIZE_MB}MB • Analyzed locally then with AI</p>
+          <p className="text-xs sm:text-sm text-zinc-500">Max {MAX_FILE_SIZE_MB}MB</p>
         </div>
       </motion.div>
 
@@ -149,18 +104,14 @@ export default function UploadZone({ fileInputRef, error, hasError, onFileSelect
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-10 p-5 rounded-2xl bg-red-500/10 border border-red-500/20 flex flex-col items-center text-center gap-3"
+          className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex flex-col items-center text-center gap-2"
         >
-          <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
-            <AlertCircle className="w-5 h-5 text-red-400" />
-          </div>
-          <div>
-            <h3 className="text-red-400 font-semibold mb-1 text-sm">Processing Failed</h3>
-            <p className="text-xs text-red-200/80 max-w-md mx-auto leading-relaxed">{error}</p>
-          </div>
+          <AlertCircle className="w-5 h-5 text-red-400" />
+          <h3 className="text-red-400 font-semibold text-sm">Failed</h3>
+          <p className="text-xs text-red-200/80 max-w-sm leading-relaxed">{error}</p>
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-xl text-xs font-medium transition-colors"
+            className="mt-1 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-xl text-xs font-medium transition-colors"
           >
             Try Another File
           </button>
@@ -169,25 +120,25 @@ export default function UploadZone({ fileInputRef, error, hasError, onFileSelect
 
       {/* Feature Cards */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.25 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.25 }}
       >
-        <h4 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider text-center mb-5">
-          Forensic Analysis Pipeline
+        <h4 className="text-[10px] sm:text-xs font-semibold text-zinc-500 uppercase tracking-wider text-center mb-4">
+          Analysis Pipeline
         </h4>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
           {FEATURES.map((feat, i) => (
             <motion.div
               key={feat.title}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.3 + i * 0.06 }}
-              className={`feature-card p-4 rounded-xl border ${feat.border} ${feat.bg} backdrop-blur-sm`}
+              transition={{ duration: 0.3, delay: 0.3 + i * 0.05 }}
+              className={`feature-card p-3 sm:p-4 rounded-lg sm:rounded-xl border ${feat.border} ${feat.bg}`}
             >
-              <feat.icon className={`w-4 h-4 ${feat.color} mb-2.5`} />
-              <h5 className="text-xs font-semibold text-zinc-200 mb-1">{feat.title}</h5>
-              <p className="text-[11px] text-zinc-500 leading-relaxed">{feat.desc}</p>
+              <feat.icon className={`w-3.5 h-3.5 ${feat.color} mb-2`} />
+              <h5 className="text-[11px] sm:text-xs font-semibold text-zinc-200 mb-0.5">{feat.title}</h5>
+              <p className="text-[10px] sm:text-[11px] text-zinc-500 leading-snug">{feat.desc}</p>
             </motion.div>
           ))}
         </div>

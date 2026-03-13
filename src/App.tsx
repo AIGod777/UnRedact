@@ -332,51 +332,37 @@ IMPORTANT RULES:
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50 font-sans selection:bg-emerald-500/30">
       <header className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-              <ShieldAlert className="w-5 h-5 text-emerald-400" />
+        <div className="max-w-5xl mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+              <ShieldAlert className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
             </div>
             <div>
-              <h1 className="font-semibold text-lg tracking-tight">PDF Unredactor</h1>
-              <p className="text-xs text-zinc-400 font-medium">Forensic Document Analysis</p>
+              <h1 className="font-semibold text-base sm:text-lg tracking-tight">UnRedact</h1>
+              <p className="text-[10px] sm:text-xs text-zinc-400 font-medium">Forensic PDF Analysis</p>
             </div>
           </div>
           {status === 'done' && (
-            <button onClick={reset} className="text-sm font-medium text-zinc-400 hover:text-zinc-100 transition-colors">
+            <button onClick={reset} className="text-xs sm:text-sm font-medium text-zinc-400 hover:text-zinc-100 active:text-zinc-100 transition-colors px-2 py-1">
               Start Over
             </button>
           )}
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-12">
+      <main className="max-w-5xl mx-auto px-3 sm:px-6 py-6 sm:py-12">
         {status === 'idle' || status === 'error' ? (
           <UploadZone fileInputRef={fileInputRef} error={error} hasError={status === 'error'} onFileSelect={handleFileSelect} />
         ) : status === 'extracting' || status === 'analyzing' ? (
           <ProcessingView status={status} progress={progress} progressStage={progressStage} onStop={stopProcessing} />
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 sm:gap-8">
+            {/* Results first on mobile for better UX */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
-              className="lg:col-span-4"
-            >
-              <Sidebar
-                fileName={file?.name}
-                history={history}
-                forensicSummary={forensicSummary}
-                onDownload={() => downloadResult(result, file?.name || 'document.pdf')}
-                onHistorySelect={handleHistorySelect}
-              />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.15 }}
-              className="lg:col-span-8"
+              className="order-1 lg:order-2 lg:col-span-8"
             >
               <ResultsView
                 result={result}
@@ -387,6 +373,21 @@ IMPORTANT RULES:
                 setActiveTab={setActiveTab}
                 selectedRedaction={selectedRedaction}
                 setSelectedRedaction={setSelectedRedaction}
+              />
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.15 }}
+              className="order-2 lg:order-1 lg:col-span-4"
+            >
+              <Sidebar
+                fileName={file?.name}
+                history={history}
+                forensicSummary={forensicSummary}
+                onDownload={() => downloadResult(result, file?.name || 'document.pdf')}
+                onHistorySelect={handleHistorySelect}
               />
             </motion.div>
           </div>
