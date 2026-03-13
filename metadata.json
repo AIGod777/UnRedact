@@ -1,0 +1,5 @@
+{
+  "name": "PDF Unredactor",
+  "description": "Recover hidden text from improperly redacted PDFs or use AI to infer missing context.",
+  "requestFramePermissions": []
+}
