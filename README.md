@@ -2,6 +2,12 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
+People in power have betrayed us and only serve self interest. We deserve to live in a peaceful world. Our children deserve to be safe.
+
+These monsters must be held accountable for their actions.
+
+let's build tools to dismantle their control.
+
 # Run and deploy your AI Studio app
 
 This contains everything you need to run your app locally.
