@@ -8,6 +8,8 @@ These monsters must be held accountable for their actions.
 
 let's build tools to dismantle their control.
 
+This application started as a project on my phone but expanded to Antigravity using Claude 4.6 Opus.
+
 # Run and deploy your AI Studio app
 
 This contains everything you need to run your app locally.
