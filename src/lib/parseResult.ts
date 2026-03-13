@@ -1,11 +1,12 @@
 import type { ParsedSegment, Redaction } from '../types';
 
 /**
- * Parses reconstructed text containing [RECOVERED:score] and [GUESSED:score] markers
- * into structured segments, enriched with metadata from the redactions array.
+ * Parses reconstructed text containing [RECOVERED:score], [GUESSED:score], and
+ * [INFERRED:score] markers into structured segments, enriched with metadata
+ * from the redactions array.
  */
 export function parseResult(text: string, redactions: Redaction[]): ParsedSegment[] {
-  const regex = /\[(RECOVERED|GUESSED):(\d+)\](.*?)\[\/\1\]/g;
+  const regex = /\[(RECOVERED|GUESSED|INFERRED):(\d+)\](.*?)\[\/\1\]/g;
   const parts: ParsedSegment[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;

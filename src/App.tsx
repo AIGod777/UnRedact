@@ -6,8 +6,8 @@ import ProcessingView from './components/ProcessingView';
 import ResultsView from './components/ResultsView';
 import Sidebar from './components/Sidebar';
 import UploadZone from './components/UploadZone';
-import { extractTextFromPDF, fileToBase64 } from './lib/pdf';
-import type { HistoryItem, Redaction, Status } from './types';
+import { runForensicExtraction, buildForensicSummary, formatForensicReportForPrompt, fileToBase64 } from './lib/pdf';
+import type { ForensicReport, ForensicSummary, HistoryItem, Redaction, Status } from './types';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB, MAX_TEXT_LENGTH } from './types';
 
 // NOTE: The API key is injected at build time and visible in the client bundle.
@@ -21,13 +21,17 @@ export default function App() {
   const [rawText, setRawText] = useState<string>('');
   const [result, setResult] = useState<string>('');
   const [redactions, setRedactions] = useState<Redaction[]>([]);
+  const [forensicReport, setForensicReport] = useState<ForensicReport | null>(null);
+  const [forensicSummary, setForensicSummary] = useState<ForensicSummary | null>(null);
   const [error, setError] = useState<string>('');
   const [progress, setProgress] = useState<number>(0);
-  const [activeTab, setActiveTab] = useState<'reconstructed' | 'raw'>('reconstructed');
+  const [progressStage, setProgressStage] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'reconstructed' | 'raw' | 'forensics'>('reconstructed');
   const [selectedRedaction, setSelectedRedaction] = useState<{
     type: string;
     content: string;
     score: number;
+    method?: string;
     explanation?: string;
     alternatives?: string[];
   } | null>(null);
@@ -40,7 +44,6 @@ export default function App() {
       const saved = localStorage.getItem('pdf-unredactor-history');
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Migrate old history items that don't have redactions
         const migrated = parsed.map((item: any) => ({
           ...item,
           redactions: item.redactions ?? [],
@@ -53,12 +56,13 @@ export default function App() {
   }, []);
 
   const saveToHistory = useCallback(
-    (fileName: string, resultText: string, resultRedactions: Redaction[]) => {
+    (fileName: string, resultText: string, resultRedactions: Redaction[], summary?: ForensicSummary) => {
       const newItem: HistoryItem = {
         id: crypto.randomUUID(),
         fileName,
         result: resultText,
         redactions: resultRedactions,
+        forensicSummary: summary,
         timestamp: Date.now(),
       };
       const newHistory = [newItem, ...history];
@@ -87,9 +91,12 @@ export default function App() {
     setRawText('');
     setResult('');
     setRedactions([]);
+    setForensicReport(null);
+    setForensicSummary(null);
     setError('');
     setStatus('idle');
     setProgress(0);
+    setProgressStage('');
     setSelectedRedaction(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -119,45 +126,75 @@ export default function App() {
       setFile(selectedFile);
       setError('');
       setProgress(0);
+      setProgressStage('');
       setRedactions([]);
+      setForensicReport(null);
+      setForensicSummary(null);
       setSelectedRedaction(null);
       setStatus('extracting');
 
       try {
-        // Step 1: Extract raw text layer
+        // Step 1: Full Forensic Extraction Pipeline
         const arrayBuffer = await selectedFile.arrayBuffer();
-        const extractedText = await extractTextFromPDF(
+        const report = await runForensicExtraction(
           arrayBuffer,
-          (p) => setProgress(p),
+          (p, stage) => {
+            setProgress(p);
+            setProgressStage(stage);
+          },
           () => cancelRef.current
         );
 
         if (cancelRef.current) return;
 
-        setRawText(extractedText);
+        setRawText(report.plainText);
+        setForensicReport(report);
+        const summary = buildForensicSummary(report);
+        setForensicSummary(summary);
 
-        // Truncate extracted text if too long to prevent payload issues
+        // Build the forensic signals for the AI prompt
+        const forensicSignals = formatForensicReportForPrompt(report);
+
+        // Truncate plain text if too long
         const truncatedText =
-          extractedText.length > MAX_TEXT_LENGTH
-            ? extractedText.substring(0, MAX_TEXT_LENGTH) + '\n... [Text truncated for processing] ...'
-            : extractedText;
+          report.plainText.length > MAX_TEXT_LENGTH
+            ? report.plainText.substring(0, MAX_TEXT_LENGTH) + '\n... [Text truncated for processing] ...'
+            : report.plainText;
 
-        // Step 2: Analyze with Gemini
+        // Step 2: Enhanced AI Analysis with Forensic Context
         setStatus('analyzing');
+        setProgressStage('Sending to AI for analysis');
         const base64 = await fileToBase64(selectedFile);
 
         if (cancelRef.current) return;
 
-        const prompt = `You are an expert forensic document analyst. The user has provided a PDF that contains redactions (black boxes over text).
-Often, these redactions are improperly applied, and the original text remains in the document's text layer.
+        const prompt = `You are an expert forensic document analyst specializing in PDF redaction recovery. You have been provided with:
+1. The PDF file itself (with visual redactions — black boxes)
+2. A comprehensive forensic extraction report with multiple layers of evidence
 
-I have extracted the raw text layer from the PDF and provided it below.
-I have also provided the PDF file itself so you can see where the visual redactions are located.
+FORENSIC EXTRACTION REPORT:
+${forensicSignals}
 
-Raw Text Layer:
+RAW TEXT LAYER:
 <raw_text>
 ${truncatedText}
-</raw_text>`;
+</raw_text>
+
+YOUR TASK:
+Reconstruct the original document as accurately as possible using ALL available forensic signals:
+
+1. **RECOVERED text** — Text found directly under redaction boxes in the text layer. This is the highest-confidence signal. Wrap in [RECOVERED:score]text[/RECOVERED].
+2. **INFERRED text** — Text recovered from document version history, orphaned strings, or annotation contents. Wrap in [INFERRED:score]text[/INFERRED].  
+3. **GUESSED text** — When no forensic evidence exists, use surrounding context, document topic, formatting patterns, and typical document structures to make an educated guess. Wrap in [GUESSED:score]text[/GUESSED].
+
+IMPORTANT RULES:
+- The <text_under_redactions> section contains text FOUND DIRECTLY UNDER the black boxes. These are almost certainly the redacted content. Use them with high confidence.
+- Cross-reference orphaned strings with the document context to identify which may be remnants of redacted content.
+- Consider the document metadata (author, creation software) for context clues.
+- Score 0-100 based on evidence strength: text-under-box (85-100), version-history/orphaned (60-85), contextual guess (10-60).
+- For each redaction, explain HOW you recovered it (which forensic signal).
+- Maintain the original document structure.
+- Return the result as JSON.`;
 
         // Helper for retries with exponential backoff
         const callWithRetry = async (fn: () => Promise<any>, retries = 2) => {
@@ -165,7 +202,7 @@ ${truncatedText}
             try {
               return await Promise.race([
                 fn(),
-                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Timeout')), 90_000)),
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Timeout')), 120_000)),
               ]);
             } catch (err: any) {
               const isNetworkError =
@@ -189,29 +226,7 @@ ${truncatedText}
                   mimeType: 'application/pdf',
                 },
               },
-              {
-                text:
-                  prompt +
-                  `
-Your task:
-1. Reconstruct the original document as accurately as possible.
-2. Compare the visual PDF (which has black boxes) with the Raw Text Layer (which might have the hidden text).
-3. Whenever you restore a word or phrase that is visually redacted in the PDF but present in the raw text, wrap it in [RECOVERED:score]text[/RECOVERED] where score is your confidence (0-100) that this text was indeed the redacted part.
-4. If there is a visual redaction but the text is TRULY missing from the raw text layer, use the surrounding context to make your best educated guess. Wrap your guesses in [GUESSED:score]text[/GUESSED] where score is your confidence (0-100).
-5. Output the clean, reconstructed text. Maintain the original document's structure as much as possible.
-6. Also, return a JSON object with the structure:
-{
-  "redactions": [
-    {
-      "type": "RECOVERED" | "GUESSED",
-      "text": "...",
-      "score": 0-100,
-      "alternatives": ["...", "..."],
-      "explanation": "..."
-    }
-  ]
-}`,
-              },
+              { text: prompt },
             ],
             config: {
               responseMimeType: 'application/json',
@@ -227,6 +242,7 @@ Your task:
                         type: { type: Type.STRING },
                         text: { type: Type.STRING },
                         score: { type: Type.NUMBER },
+                        method: { type: Type.STRING },
                         alternatives: { type: Type.ARRAY, items: { type: Type.STRING } },
                         explanation: { type: Type.STRING },
                       },
@@ -246,7 +262,7 @@ Your task:
 
         setResult(resultText);
         setRedactions(resultRedactions);
-        saveToHistory(selectedFile.name, resultText, resultRedactions);
+        saveToHistory(selectedFile.name, resultText, resultRedactions, summary);
         setStatus('done');
       } catch (err: any) {
         if (err.message === 'Cancelled') return;
@@ -265,7 +281,6 @@ Your task:
           }
         }
 
-        // Categorize known error types
         if (err.status === 429 || errorMessage.toLowerCase().includes('quota') || errorMessage.toLowerCase().includes('429')) {
           errorMessage = 'AI API quota exceeded. Please try again later or use a smaller document.';
         } else if (errorMessage.toLowerCase().includes('safety')) {
@@ -306,6 +321,8 @@ Your task:
   const handleHistorySelect = useCallback((item: HistoryItem) => {
     setResult(item.result);
     setRedactions(item.redactions);
+    setForensicSummary(item.forensicSummary || null);
+    setForensicReport(null); // Full report not stored in history
     setFile({ name: item.fileName } as File);
     setSelectedRedaction(null);
     setActiveTab('reconstructed');
@@ -337,7 +354,7 @@ Your task:
         {status === 'idle' || status === 'error' ? (
           <UploadZone fileInputRef={fileInputRef} error={error} hasError={status === 'error'} onFileSelect={handleFileSelect} />
         ) : status === 'extracting' || status === 'analyzing' ? (
-          <ProcessingView status={status} progress={progress} onStop={stopProcessing} />
+          <ProcessingView status={status} progress={progress} progressStage={progressStage} onStop={stopProcessing} />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <motion.div
@@ -349,6 +366,7 @@ Your task:
               <Sidebar
                 fileName={file?.name}
                 history={history}
+                forensicSummary={forensicSummary}
                 onDownload={() => downloadResult(result, file?.name || 'document.pdf')}
                 onHistorySelect={handleHistorySelect}
               />
@@ -364,6 +382,7 @@ Your task:
                 result={result}
                 rawText={rawText}
                 redactions={redactions}
+                forensicReport={forensicReport}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 selectedRedaction={selectedRedaction}

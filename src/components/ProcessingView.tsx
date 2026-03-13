@@ -3,10 +3,11 @@ import { FileSearch, ShieldAlert, XCircle } from 'lucide-react';
 interface ProcessingViewProps {
   status: 'extracting' | 'analyzing';
   progress: number;
+  progressStage?: string;
   onStop: () => void;
 }
 
-export default function ProcessingView({ status, progress, onStop }: ProcessingViewProps) {
+export default function ProcessingView({ status, progress, progressStage, onStop }: ProcessingViewProps) {
   return (
     <div className="max-w-md mx-auto text-center py-20">
       <div className="relative w-24 h-24 mx-auto mb-8">
@@ -25,12 +26,12 @@ export default function ProcessingView({ status, progress, onStop }: ProcessingV
       </div>
 
       <h3 className="text-xl font-medium mb-2">
-        {status === 'extracting' ? 'Extracting Text Layer...' : 'Analyzing Redactions...'}
+        {status === 'extracting' ? 'Forensic Extraction...' : 'AI Analysis...'}
       </h3>
       <p className="text-sm text-zinc-500 mb-8">
         {status === 'extracting'
-          ? 'Scanning document for improperly hidden text.'
-          : 'Using AI to reconstruct document and infer missing context.'}
+          ? 'Running multi-layer forensic extraction pipeline.'
+          : 'Using AI to reconstruct document with forensic evidence.'}
       </p>
 
       {/* Progress Bar */}
@@ -42,9 +43,12 @@ export default function ProcessingView({ status, progress, onStop }: ProcessingV
           style={{ width: status === 'extracting' ? `${progress}%` : '100%' }}
         />
       </div>
-      <div className="text-xs text-zinc-400 font-medium mb-8 h-4">
+      <div className="text-xs text-zinc-400 font-medium mb-2 h-4">
         {status === 'extracting' ? `${progress}% Complete` : 'Processing with Gemini...'}
       </div>
+      {progressStage && (
+        <div className="text-xs text-zinc-500 mb-6 h-4 capitalize">{progressStage}</div>
+      )}
 
       {/* Stop Button */}
       <button
