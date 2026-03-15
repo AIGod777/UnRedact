@@ -1,4 +1,4 @@
-import { UploadCloud, AlertCircle, Layers, Search, Database, History, Cpu, FileText } from 'lucide-react';
+import { UploadCloud, AlertCircle, Layers, Search, Database, History, Cpu, FileText, Users } from 'lucide-react';
 import { motion } from 'motion/react';
 import React, { useCallback, useState } from 'react';
 import { MAX_FILE_SIZE_MB } from '../types';
@@ -16,6 +16,7 @@ const FEATURES = [
   { icon: History, title: 'Version Recovery', desc: 'Recovers pre-redaction versions', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
   { icon: Database, title: 'Orphaned Data', desc: 'Scans binary for deleted text', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
   { icon: FileText, title: 'Metadata', desc: 'Extracts author & doc info', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
+  { icon: Users, title: 'Person Lookup', desc: 'Cross-references known persons', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
   { icon: Cpu, title: 'AI Analysis', desc: 'Gemini reconstructs content', color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
 ];
 
@@ -56,7 +57,7 @@ export default function UploadZone({ fileInputRef, error, hasError, onFileSelect
       >
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] sm:text-xs font-semibold mb-4 sm:mb-6">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          6-Layer Forensic Analysis
+          7-Layer Forensic Analysis
         </div>
         <h2 className="text-2xl sm:text-4xl font-bold tracking-tight mb-3 bg-gradient-to-b from-zinc-100 to-zinc-400 bg-clip-text text-transparent">
           Reveal What's Hidden

@@ -7,6 +7,7 @@ import ResultsView from './components/ResultsView';
 import Sidebar from './components/Sidebar';
 import UploadZone from './components/UploadZone';
 import { runForensicExtraction, buildForensicSummary, formatForensicReportForPrompt, fileToBase64 } from './lib/pdf';
+import { crossReferencePersons, formatCrossReferencesForPrompt, type CrossReferenceResult } from './lib/personsApi';
 import type { ForensicReport, ForensicSummary, HistoryItem, Redaction, Status } from './types';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB, MAX_TEXT_LENGTH } from './types';
 
@@ -155,13 +156,38 @@ export default function App() {
         // Build the forensic signals for the AI prompt
         const forensicSignals = formatForensicReportForPrompt(report);
 
+        // Step 2: Cross-reference persons with Epstein Exposed database
+        setStatus('cross-referencing');
+        setProgressStage('Cross-referencing names against database');
+
+        let crossRefResult: CrossReferenceResult = {
+          crossReferences: [], namesExtracted: [], totalMatches: 0, errors: [],
+        };
+        try {
+          crossRefResult = await crossReferencePersons(report.plainText, {
+            signal: AbortSignal.timeout(30_000),
+          });
+          report.crossReferences = crossRefResult;
+          setForensicReport({ ...report });
+          const updatedSummary = buildForensicSummary(report);
+          setForensicSummary(updatedSummary);
+        } catch (err) {
+          console.warn('Cross-reference lookup failed (non-fatal):', err);
+        }
+
+        if (cancelRef.current) return;
+
+        const crossRefSection = crossRefResult.totalMatches > 0
+          ? '\n\n' + formatCrossReferencesForPrompt(crossRefResult)
+          : '';
+
         // Truncate plain text if too long
         const truncatedText =
           report.plainText.length > MAX_TEXT_LENGTH
             ? report.plainText.substring(0, MAX_TEXT_LENGTH) + '\n... [Text truncated for processing] ...'
             : report.plainText;
 
-        // Step 2: Enhanced AI Analysis with Forensic Context
+        // Step 3: Enhanced AI Analysis with Forensic Context
         setStatus('analyzing');
         setProgressStage('Sending to AI for analysis');
         const base64 = await fileToBase64(selectedFile);
@@ -173,7 +199,7 @@ export default function App() {
 2. A comprehensive forensic extraction report with multiple layers of evidence
 
 FORENSIC EXTRACTION REPORT:
-${forensicSignals}
+${forensicSignals}${crossRefSection}
 
 RAW TEXT LAYER:
 <raw_text>
@@ -186,6 +212,7 @@ Reconstruct the original document as accurately as possible using ALL available 
 1. **RECOVERED text** — Text found directly under redaction boxes in the text layer. This is the highest-confidence signal. Wrap in [RECOVERED:score]text[/RECOVERED].
 2. **INFERRED text** — Text recovered from document version history, orphaned strings, or annotation contents. Wrap in [INFERRED:score]text[/INFERRED].  
 3. **GUESSED text** — When no forensic evidence exists, use surrounding context, document topic, formatting patterns, and typical document structures to make an educated guess. Wrap in [GUESSED:score]text[/GUESSED].
+4. **CROSS-REFERENCED names** — If a <person_cross_references> section is provided, use the known persons, aliases, and connections to improve guesses about redacted person names.
 
 IMPORTANT RULES:
 - The <text_under_redactions> section contains text FOUND DIRECTLY UNDER the black boxes. These are almost certainly the redacted content. Use them with high confidence.
@@ -353,7 +380,7 @@ IMPORTANT RULES:
       <main className="max-w-5xl mx-auto px-3 sm:px-6 py-6 sm:py-12">
         {status === 'idle' || status === 'error' ? (
           <UploadZone fileInputRef={fileInputRef} error={error} hasError={status === 'error'} onFileSelect={handleFileSelect} />
-        ) : status === 'extracting' || status === 'analyzing' ? (
+        ) : status === 'extracting' || status === 'cross-referencing' || status === 'analyzing' ? (
           <ProcessingView status={status} progress={progress} progressStage={progressStage} onStop={stopProcessing} />
         ) : (
           <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 sm:gap-8">

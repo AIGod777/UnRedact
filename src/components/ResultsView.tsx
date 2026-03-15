@@ -1,4 +1,4 @@
-import { Info, XCircle, Search, Layers, Database, History, FileText, AlertTriangle } from 'lucide-react';
+import { Info, XCircle, Search, Layers, Database, History, FileText, AlertTriangle, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useMemo } from 'react';
 import Markdown from 'react-markdown';
@@ -298,6 +298,33 @@ function ForensicsTab({ report }: { report: ForensicReport | null }) {
             {report.orphanedStrings.length > 20 && (
               <p className="text-[10px] text-zinc-500">+{report.orphanedStrings.length - 20} more</p>
             )}
+          </div>
+        </Section>
+      )}
+
+      {/* Cross-Referenced Persons */}
+      {report.crossReferences && report.crossReferences.totalMatches > 0 && (
+        <Section
+          icon={<Users className="w-3.5 h-3.5 text-orange-400" />}
+          title={`Persons Database (${report.crossReferences.totalMatches})`}
+          badge="CROSS-REF"
+          badgeColor="bg-orange-500/20 text-orange-400"
+        >
+          <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+            {report.crossReferences.crossReferences.map((ref, i) => (
+              <div key={i} className="px-2.5 py-2 bg-orange-500/5 border border-orange-500/10 rounded-lg">
+                <div className="text-[10px] text-zinc-400 mb-0.5">
+                  Query: &ldquo;{ref.queryName}&rdquo;
+                </div>
+                {ref.matches.map((person, j) => (
+                  <div key={j} className="text-xs text-orange-300 font-medium">
+                    {person.name}
+                    {person.aliases && person.aliases.length > 0 ? ` (aka ${person.aliases.join(', ')})` : ''}
+                    {person.documents_count ? ` — ${person.documents_count} docs` : ''}
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
         </Section>
       )}

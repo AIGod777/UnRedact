@@ -366,6 +366,8 @@ export function buildForensicSummary(report: ForensicReport): ForensicSummary {
     versionsDetected: report.versionInfo.count,
     orphanedStringsFound: report.orphanedStrings.length,
     metadataAvailable: !!(report.metadata.author || report.metadata.creator || report.metadata.producer),
+    personsMatched: report.crossReferences?.totalMatches ?? 0,
+    namesExtracted: report.crossReferences?.namesExtracted.length ?? 0,
   };
 }
 
