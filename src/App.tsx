@@ -38,6 +38,7 @@ export default function App() {
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cancelRef = useRef<boolean>(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Load history from localStorage on mount
   React.useEffect(() => {
@@ -66,7 +67,8 @@ export default function App() {
         forensicSummary: summary,
         timestamp: Date.now(),
       };
-      const newHistory = [newItem, ...history];
+      const MAX_HISTORY = 50;
+      const newHistory = [newItem, ...history].slice(0, MAX_HISTORY);
       setHistory(newHistory);
       try {
         localStorage.setItem('pdf-unredactor-history', JSON.stringify(newHistory));
@@ -106,6 +108,8 @@ export default function App() {
 
   const stopProcessing = useCallback(() => {
     cancelRef.current = true;
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
     reset();
   }, [reset]);
 
@@ -124,6 +128,8 @@ export default function App() {
       }
 
       cancelRef.current = false;
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = new AbortController();
       setFile(selectedFile);
       setError('');
       setProgress(0);
@@ -165,7 +171,7 @@ export default function App() {
         };
         try {
           crossRefResult = await crossReferencePersons(report.plainText, {
-            signal: AbortSignal.timeout(30_000),
+            signal: abortControllerRef.current?.signal ?? AbortSignal.timeout(30_000),
           });
           report.crossReferences = crossRefResult;
           setForensicReport({ ...report });

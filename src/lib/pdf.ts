@@ -317,12 +317,19 @@ function calculateOverlap(
   a: { x: number; y: number; w: number; h: number },
   b: { x: number; y: number; w: number; h: number }
 ): number {
-  const aTop = Math.max(a.y, a.y + a.h);
+  // Normalize rectangles so coordinates represent actual min/max bounds
+  // (handles negative width/height from PDF coordinate variations)
+  const aLeft = Math.min(a.x, a.x + a.w);
+  const aRight = Math.max(a.x, a.x + a.w);
   const aBottom = Math.min(a.y, a.y + a.h);
-  const bTop = Math.max(b.y, b.y + b.h);
-  const bBottom = Math.min(b.y, b.y + b.h);
+  const aTop = Math.max(a.y, a.y + a.h);
 
-  const xOverlap = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x));
+  const bLeft = Math.min(b.x, b.x + b.w);
+  const bRight = Math.max(b.x, b.x + b.w);
+  const bBottom = Math.min(b.y, b.y + b.h);
+  const bTop = Math.max(b.y, b.y + b.h);
+
+  const xOverlap = Math.max(0, Math.min(aRight, bRight) - Math.max(aLeft, bLeft));
   const yOverlap = Math.max(0, Math.min(aTop, bTop) - Math.max(aBottom, bBottom));
 
   const intersectionArea = xOverlap * yOverlap;

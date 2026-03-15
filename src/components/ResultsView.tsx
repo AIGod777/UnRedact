@@ -372,5 +372,10 @@ function Field({ label, value }: { label: string; value: string }) {
 function fmtDate(d: string): string {
   const m = d.match(/D:(\d{4})(\d{2})(\d{2})(\d{2})?(\d{2})?/);
   if (m) return `${m[1]}-${m[2]}-${m[3]}${m[4] ? ` ${m[4]}:${m[5] || '00'}` : ''}`;
+  // Fallback: try parsing as a standard date string
+  try {
+    const parsed = new Date(d);
+    if (!isNaN(parsed.getTime())) return parsed.toLocaleDateString();
+  } catch { /* not a parseable date */ }
   return d;
 }

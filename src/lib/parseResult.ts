@@ -20,7 +20,7 @@ export function parseResult(text: string, redactions: Redaction[]): ParsedSegmen
     const metadata = redactions.find((r) => r.text === content);
 
     parts.push({
-      type: match[1].toLowerCase() as 'recovered' | 'guessed',
+      type: match[1].toLowerCase() as 'recovered' | 'guessed' | 'inferred',
       score: parseInt(match[2], 10),
       content,
       alternatives: metadata?.alternatives ?? [],
