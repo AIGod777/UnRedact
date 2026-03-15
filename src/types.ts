@@ -1,4 +1,4 @@
-export type Status = 'idle' | 'extracting' | 'analyzing' | 'done' | 'error';
+export type Status = 'idle' | 'extracting' | 'cross-referencing' | 'analyzing' | 'done' | 'error';
 
 export interface Redaction {
   type: 'RECOVERED' | 'GUESSED' | 'INFERRED';
@@ -91,6 +91,7 @@ export interface ForensicReport {
   versionInfo: VersionInfo;
   orphanedStrings: string[];
   plainText: string;
+  crossReferences?: import('./lib/personsApi').CrossReferenceResult;
 }
 
 export interface ForensicSummary {
@@ -100,6 +101,8 @@ export interface ForensicSummary {
   versionsDetected: number;
   orphanedStringsFound: number;
   metadataAvailable: boolean;
+  personsMatched: number;
+  namesExtracted: number;
 }
 
 export const MAX_FILE_SIZE_MB = 20;
