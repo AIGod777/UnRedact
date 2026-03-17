@@ -40,7 +40,7 @@ export async function runForensicExtraction(
   const allTextItems: TextItem[] = [];
   const allAnnotations: AnnotationInfo[] = [];
   const allRedactionBoxes: RedactionBox[] = [];
-  let plainText = '';
+  const plainTextItems: string[] = [];
 
   try {
     const totalSteps = pdf.numPages * 3;
@@ -68,7 +68,7 @@ export async function runForensicExtraction(
       // --- 1. Positional Text Extraction ---
       try {
         const textContent = await page.getTextContent();
-        let pageText = '';
+        const pageTextItems: string[] = [];
 
         for (const item of textContent.items) {
           const textItem = item as any;
@@ -76,7 +76,7 @@ export async function runForensicExtraction(
 
           const tx = textItem.transform;
           if (!tx || tx.length < 6) {
-            pageText += textItem.str + ' ';
+            pageTextItems.push(textItem.str);
             continue;
           }
 
@@ -96,13 +96,13 @@ export async function runForensicExtraction(
             page: i,
           });
 
-          pageText += textItem.str + ' ';
+          pageTextItems.push(textItem.str);
         }
 
-        plainText += `--- Page ${i} ---\n${pageText.trim()}\n\n`;
+        plainTextItems.push(`--- Page ${i} ---\n${pageTextItems.join(' ')}\n\n`);
       } catch (e) {
         console.warn(`Text extraction failed for page ${i}:`, e);
-        plainText += `--- Page ${i} ---\n[Text extraction failed]\n\n`;
+        plainTextItems.push(`--- Page ${i} ---\n[Text extraction failed]\n\n`);
       }
       reportProgress('Extracting text');
 
@@ -186,7 +186,7 @@ export async function runForensicExtraction(
       textUnderRedactions,
       versionInfo,
       orphanedStrings,
-      plainText,
+      plainText: plainTextItems.join(''),
     };
   } finally {
     try {
