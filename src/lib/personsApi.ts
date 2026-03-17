@@ -63,6 +63,8 @@ export function extractNames(text: string, maxNames = 15): string[] {
     .map(([name]) => name);
 }
 
+const queryCache = new Map<string, Promise<PersonCrossReference>>();
+
 /**
  * Queries the Epstein Exposed persons API for a single name.
  */
@@ -72,33 +74,51 @@ async function queryPerson(
   perPage: number,
   signal?: AbortSignal
 ): Promise<PersonCrossReference> {
-  const url = `${apiBaseUrl}/v2/persons?q=${encodeURIComponent(name)}&per_page=${perPage}`;
-  const response = await fetch(url, { signal });
-
-  if (response.status === 429) {
-    throw new Error('RATE_LIMITED');
+  if (queryCache.has(name)) {
+    return queryCache.get(name)!;
   }
 
-  if (!response.ok) {
-    throw new Error(`API returned ${response.status}`);
-  }
+  const promise = (async () => {
+    const url = `${apiBaseUrl}/v2/persons?q=${encodeURIComponent(name)}&per_page=${perPage}`;
+    const response = await fetch(url, { signal });
 
-  const json = await response.json();
+    if (response.status === 429) {
+      throw new Error('RATE_LIMITED');
+    }
 
-  // Handle various response shapes defensively
-  const data = Array.isArray(json) ? json : (json.data ?? json.results ?? []);
-  const matches: EpsteinPerson[] = data.map((item: any) => ({
-    id: item.id ?? 0,
-    name: item.name ?? item.full_name ?? 'Unknown',
-    aliases: item.aliases ?? [],
-    description: item.description ?? item.bio ?? undefined,
-    connections: item.connections ?? [],
-    documents_count: item.documents_count ?? item.document_count ?? 0,
-    url: item.url ?? undefined,
-  }));
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}`);
+    }
 
-  return { queryName: name, matches };
+    const json = await response.json();
+
+    // Handle various response shapes defensively
+    const data = Array.isArray(json) ? json : (json.data ?? json.results ?? []);
+    const matches: EpsteinPerson[] = data.map((item: any) => ({
+      id: item.id ?? 0,
+      name: item.name ?? item.full_name ?? 'Unknown',
+      aliases: item.aliases ?? [],
+      description: item.description ?? item.bio ?? undefined,
+      connections: item.connections ?? [],
+      documents_count: item.documents_count ?? item.document_count ?? 0,
+      url: item.url ?? undefined,
+    }));
+
+    return { queryName: name, matches };
+  })();
+
+  queryCache.set(name, promise);
+
+  // If the promise fails, remove it from the cache so we can retry later
+  promise.catch(() => {
+    if (queryCache.get(name) === promise) {
+      queryCache.delete(name);
+    }
+  });
+
+  return promise;
 }
+
 
 /**
  * Cross-references names found in PDF text against the Epstein Exposed database.
