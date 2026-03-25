@@ -46,6 +46,12 @@ export function extractPreviousVersion(
   return data.slice(0, endOffset);
 }
 
+const ESCAPE_N_PATTERN = /\\n/g;
+const ESCAPE_R_PATTERN = /\\r/g;
+const ESCAPE_T_PATTERN = /\\t/g;
+const ESCAPE_SLASH_PATTERN = /\\\\/g;
+const ESCAPE_PAREN_PATTERN = /\\([()])/g;
+
 /**
  * Scans raw PDF bytes for text strings that may be orphaned (not displayed but
  * still present in the file). Looks for parenthesized strings in content streams.
@@ -66,17 +72,25 @@ export function findOrphanedStrings(data: Uint8Array): string[] {
 
   while ((match = stringPattern.exec(text)) !== null) {
     const str = match[1]
-      .replace(/\\n/g, '\n')
-      .replace(/\\r/g, '\r')
-      .replace(/\\t/g, '\t')
-      .replace(/\\\\/g, '\\')
-      .replace(/\\([()])/g, '$1');
+      .replace(ESCAPE_N_PATTERN, '\n')
+      .replace(ESCAPE_R_PATTERN, '\r')
+      .replace(ESCAPE_T_PATTERN, '\t')
+      .replace(ESCAPE_SLASH_PATTERN, '\\')
+      .replace(ESCAPE_PAREN_PATTERN, '$1');
 
     // Filter: must contain mostly printable ASCII/Unicode, min 4 chars
-    const printableRatio = (str.match(/[\x20-\x7E]/g) || []).length / str.length;
-    if (printableRatio > 0.7 && str.trim().length >= 4 && !seen.has(str.trim())) {
-      seen.add(str.trim());
-      results.push(str.trim());
+    let printableCount = 0;
+    for (let i = 0; i < str.length; i++) {
+      const charCode = str.charCodeAt(i);
+      if (charCode >= 0x20 && charCode <= 0x7E) {
+        printableCount++;
+      }
+    }
+    const printableRatio = printableCount / str.length;
+    const trimmedStr = str.trim();
+    if (printableRatio > 0.7 && trimmedStr.length >= 4 && !seen.has(trimmedStr)) {
+      seen.add(trimmedStr);
+      results.push(trimmedStr);
     }
   }
 
