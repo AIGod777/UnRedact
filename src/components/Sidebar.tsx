@@ -1,4 +1,4 @@
-import { CheckCircle2, Search, Database, Layers, History, FileText, GitCompareArrows } from 'lucide-react';
+import { CheckCircle2, Search, Database, Layers, History, FileText, Users, GitCompareArrows } from 'lucide-react';
 import type { ForensicSummary, HistoryItem } from '../types';
 
 interface SidebarProps {
@@ -45,6 +45,9 @@ export default function Sidebar({ fileName, history, forensicSummary, onDownload
             <ForensicStat icon={<History className="w-3 h-3" />} label="Versions" value={forensicSummary.versionsDetected} color={forensicSummary.versionsDetected > 1 ? 'text-amber-400' : 'text-zinc-500'} />
             {forensicSummary.versionDiffsFound > 0 && (
               <ForensicStat icon={<GitCompareArrows className="w-3 h-3" />} label="Version diffs" value={forensicSummary.versionDiffsFound} color="text-amber-400" />
+            )}
+            {forensicSummary.personsMatched > 0 && (
+              <ForensicStat icon={<Users className="w-3 h-3" />} label="Persons matched" value={forensicSummary.personsMatched} color="text-orange-400" />
             )}
             {forensicSummary.annotationsFound > 0 && (
               <ForensicStat icon={<Layers className="w-3 h-3" />} label="Annotations" value={forensicSummary.annotationsFound} color="text-purple-400" />
