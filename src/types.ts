@@ -82,6 +82,14 @@ export interface VersionInfo {
   hasMultipleVersions: boolean;
 }
 
+/** Text present in a previous PDF version but absent in the current version. */
+export interface VersionDiff {
+  missingText: string;
+  oldContext: string;       // surrounding text in the old version
+  currentContext: string;   // surrounding text in the current version
+  versionIndex: number;     // which previous version (0 = earliest)
+}
+
 export interface ForensicReport {
   metadata: DocumentMetadata;
   textItems: TextItem[];
@@ -89,6 +97,7 @@ export interface ForensicReport {
   redactionBoxes: RedactionBox[];
   textUnderRedactions: TextUnderRedaction[];
   versionInfo: VersionInfo;
+  versionDiffs: VersionDiff[];
   orphanedStrings: string[];
   plainText: string;
 }
@@ -98,6 +107,7 @@ export interface ForensicSummary {
   textRecoveredFromBoxes: number;
   annotationsFound: number;
   versionsDetected: number;
+  versionDiffsFound: number;
   orphanedStringsFound: number;
   metadataAvailable: boolean;
 }

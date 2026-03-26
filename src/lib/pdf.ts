@@ -9,8 +9,15 @@ import type {
   RedactionBox,
   TextItem,
   TextUnderRedaction,
+  VersionDiff,
 } from '../types';
-import { detectIncrementalSaves, findOrphanedStrings } from './pdfForensics';
+import {
+  detectIncrementalSaves,
+  diffVersionTexts,
+  extractPreviousVersion,
+  extractVersionText,
+  findOrphanedStrings,
+} from './pdfForensics';
 
 // Set the worker source using Vite's ?url import
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
@@ -153,9 +160,10 @@ export async function runForensicExtraction(
     }
 
     // --- 6. Binary Analysis (with size guard for mobile) ---
-    onProgress?.(92, 'Scanning for hidden versions');
+    onProgress?.(88, 'Scanning for hidden versions');
     let versionInfo = { count: 1, eofOffsets: [] as number[], hasMultipleVersions: false };
     let orphanedStrings: string[] = [];
+    let versionDiffs: VersionDiff[] = [];
 
     // Only run binary analysis on files < 5MB to avoid OOM on mobile
     const MAX_BINARY_ANALYSIS_SIZE = 5 * 1024 * 1024;
@@ -164,6 +172,33 @@ export async function runForensicExtraction(
         versionInfo = detectIncrementalSaves(data);
       } catch (e) {
         console.warn('Version detection failed:', e);
+      }
+
+      // --- 7. Version Text Diffing ---
+      if (versionInfo.hasMultipleVersions) {
+        onProgress?.(90, 'Comparing document versions');
+        try {
+          // Extract text from the current (latest) version
+          const lastIdx = versionInfo.eofOffsets.length - 1;
+          const currentVersionBytes = extractPreviousVersion(data, versionInfo, lastIdx);
+          const currentVersionText = currentVersionBytes
+            ? await extractVersionText(currentVersionBytes)
+            : plainText;
+
+          // Compare each earlier version to the latest
+          for (let vi = 0; vi < lastIdx; vi++) {
+            if (shouldCancel?.()) throw new Error('Cancelled');
+            const prevBytes = extractPreviousVersion(data, versionInfo, vi);
+            if (!prevBytes) continue;
+            const prevText = await extractVersionText(prevBytes);
+            if (!prevText) continue;
+            const diffs = diffVersionTexts(prevText, currentVersionText || plainText, vi);
+            versionDiffs.push(...diffs);
+          }
+        } catch (e) {
+          if ((e as Error).message === 'Cancelled') throw e;
+          console.warn('Version diff analysis failed:', e);
+        }
       }
 
       onProgress?.(95, 'Scanning for orphaned strings');
@@ -185,6 +220,7 @@ export async function runForensicExtraction(
       redactionBoxes: allRedactionBoxes,
       textUnderRedactions,
       versionInfo,
+      versionDiffs,
       orphanedStrings,
       plainText,
     };
@@ -364,6 +400,7 @@ export function buildForensicSummary(report: ForensicReport): ForensicSummary {
     textRecoveredFromBoxes: report.textUnderRedactions.length,
     annotationsFound: report.annotations.length,
     versionsDetected: report.versionInfo.count,
+    versionDiffsFound: report.versionDiffs.length,
     orphanedStringsFound: report.orphanedStrings.length,
     metadataAvailable: !!(report.metadata.author || report.metadata.creator || report.metadata.producer),
   };
@@ -392,6 +429,22 @@ export function formatForensicReportForPrompt(report: ForensicReport): string {
     sections.push(
       `<version_history>\n${report.versionInfo.count} incremental saves detected. ` +
         `This PDF contains previous versions that may include pre-redaction content.\n</version_history>`
+    );
+  }
+
+  // Version Diffs — text found in earlier versions but missing from the current one
+  if (report.versionDiffs.length > 0) {
+    const items = report.versionDiffs.slice(0, 40);
+    const lines = items.map(
+      (d) =>
+        `FROM VERSION ${d.versionIndex}: "${d.missingText}"` +
+        (d.oldContext ? `\n  Old context: ...${d.oldContext}...` : '') +
+        (d.currentContext ? `\n  Current context: ...${d.currentContext}...` : '')
+    );
+    sections.push(
+      `<version_diffs>\nThese text fragments were present in earlier versions of the PDF but are MISSING from the current version. ` +
+        `They were almost certainly removed by redaction and represent HIGH-CONFIDENCE recovered content:\n` +
+        `${lines.join('\n\n')}\n</version_diffs>`
     );
   }
 
