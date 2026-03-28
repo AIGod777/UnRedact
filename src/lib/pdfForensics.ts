@@ -20,7 +20,7 @@ export function detectIncrementalSaves(data: Uint8Array): VersionInfo {
     }
     if (match) {
       offsets.push(i + eofMarker.length);
-      i += eofMarker.length; // Skip past this marker
+      i += eofMarker.length - 1; // Skip past this marker (-1 because the loop also increments by 1)
     }
   }
 
