@@ -323,8 +323,15 @@ function findTextUnderRedactions(
 ): TextUnderRedaction[] {
   const results: TextUnderRedaction[] = [];
 
+  const textItemsByPage = new Map<number, TextItem[]>();
+  for (const text of textItems) {
+    const pageTexts = textItemsByPage.get(text.page) || [];
+    pageTexts.push(text);
+    textItemsByPage.set(text.page, pageTexts);
+  }
+
   for (const box of redactionBoxes) {
-    const pageTexts = textItems.filter((t) => t.page === box.page);
+    const pageTexts = textItemsByPage.get(box.page) || [];
 
     for (const text of pageTexts) {
       const overlap = calculateOverlap(
