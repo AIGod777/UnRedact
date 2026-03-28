@@ -82,7 +82,9 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${fileName.replace('.pdf', '')}_recovered.md`;
+    // Sanitize the filename to prevent XSS or directory traversal attacks
+    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.\-_ ]/g, '_').replace('.pdf', '');
+    a.download = `${sanitizedFileName}_recovered.md`;
     a.click();
     URL.revokeObjectURL(url);
   }, []);
