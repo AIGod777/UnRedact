@@ -7,20 +7,22 @@ import type { VersionInfo, VersionDiff } from '../types';
  * contains recoverable previous versions (potentially before redaction).
  */
 export function detectIncrementalSaves(data: Uint8Array): VersionInfo {
-  const eofMarker = new TextEncoder().encode('%%EOF');
   const offsets: number[] = [];
+  const len = data.length;
+  // %%EOF is [37, 37, 69, 79, 70]
 
-  for (let i = 0; i <= data.length - eofMarker.length; i++) {
-    let match = true;
-    for (let j = 0; j < eofMarker.length; j++) {
-      if (data[i + j] !== eofMarker[j]) {
-        match = false;
-        break;
-      }
-    }
-    if (match) {
-      offsets.push(i + eofMarker.length);
-      i += eofMarker.length; // Skip past this marker
+  let i = data.indexOf(37);
+  while (i !== -1 && i <= len - 5) {
+    if (
+      data[i + 1] === 37 &&
+      data[i + 2] === 69 &&
+      data[i + 3] === 79 &&
+      data[i + 4] === 70
+    ) {
+      offsets.push(i + 5);
+      i = data.indexOf(37, i + 5);
+    } else {
+      i = data.indexOf(37, i + 1);
     }
   }
 
