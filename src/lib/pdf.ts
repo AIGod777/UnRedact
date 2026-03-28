@@ -427,7 +427,7 @@ export function formatForensicReportForPrompt(report: ForensicReport): string {
   }
 
   // Version History
-  if (report.versionInfo.hasMultipleVersions) {
+  if (report.versionInfo && report.versionInfo.hasMultipleVersions) {
     sections.push(
       `<version_history>\n${report.versionInfo.count} incremental saves detected. ` +
         `This PDF contains previous versions that may include pre-redaction content.\n</version_history>`

@@ -208,27 +208,42 @@ export function findOrphanedStrings(data: Uint8Array): string[] {
 
   // Match PDF text strings: (text) preceded by Tj or TJ operators, or in streams
   // Also match hex strings: <hex>
-  const stringPattern = /\(([^)]{4,200})\)/g;
-  let match: RegExpExecArray | null;
-
-  while ((match = stringPattern.exec(text)) !== null) {
-    const str = match[1]
-      .replace(/\\n/g, '\n')
-      .replace(/\\r/g, '\r')
-      .replace(/\\t/g, '\t')
-      .replace(/\\\\/g, '\\')
-      .replace(/\\([()])/g, '$1');
-
-    // Filter: must contain mostly printable ASCII/Unicode, min 4 chars
-    const printableRatio = (str.match(/[\x20-\x7E]/g) || []).length / str.length;
-    if (printableRatio > 0.7 && str.trim().length >= 4 && !seen.has(str.trim())) {
-      seen.add(str.trim());
-      results.push(str.trim());
+  // We use index-based scanning to prevent potential ReDoS from unbounded regular expressions.
+  let startIndex = 0;
+  while ((startIndex = text.indexOf('(', startIndex)) !== -1) {
+    const endIndex = text.indexOf(')', startIndex + 1);
+    if (endIndex === -1) {
+      break;
     }
+
+    const length = endIndex - startIndex - 1;
+    // The previous regex looked for 4 to 200 characters that are not ')'
+    // Since we found the very next ')', all characters in between are not ')'
+    if (length >= 4 && length <= 200) {
+      const str = text.substring(startIndex + 1, endIndex)
+        .replace(/\\n/g, '\n')
+        .replace(/\\r/g, '\r')
+        .replace(/\\t/g, '\t')
+        .replace(/\\\\/g, '\\')
+        .replace(/\\([()])/g, '$1');
+
+      // Filter: must contain mostly printable ASCII/Unicode, min 4 chars
+      const printableRatio = (str.match(/[\x20-\x7E]/g) || []).length / str.length;
+      if (printableRatio > 0.7 && str.trim().length >= 4 && !seen.has(str.trim())) {
+        seen.add(str.trim());
+        results.push(str.trim());
+      }
+    }
+
+    // Move past the current '(' to continue searching
+    // If we found a closing parenthesis, we can skip past it to avoid O(N^2) rescanning
+    // and to match the non-overlapping behavior of the original regex.
+    startIndex = endIndex + 1;
   }
 
   // Also find hex-encoded strings
   const hexPattern = /<([0-9A-Fa-f]{8,})>/g;
+  let match: RegExpExecArray | null;
   while ((match = hexPattern.exec(text)) !== null) {
     const hex = match[1];
     let decoded = '';
