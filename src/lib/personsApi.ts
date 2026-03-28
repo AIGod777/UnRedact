@@ -45,7 +45,7 @@ const NAME_STOPLIST = new Set([
  */
 export function extractNames(text: string, maxNames = 15): string[] {
   const namePattern = /\b([A-Z][a-z]{1,20}(?:\s+[A-Z][a-z]{1,20}){1,2})\b/g;
-  const counts = new Map<string, number>();
+  const counts = new Map<string, { count: number }>();
 
   let match;
   while ((match = namePattern.exec(text)) !== null) {
@@ -53,12 +53,18 @@ export function extractNames(text: string, maxNames = 15): string[] {
     if (NAME_STOPLIST.has(name)) continue;
     // Skip single-word names that slipped through
     if (!name.includes(' ')) continue;
-    counts.set(name, (counts.get(name) || 0) + 1);
+
+    const obj = counts.get(name);
+    if (obj === undefined) {
+      counts.set(name, { count: 1 });
+    } else {
+      obj.count++;
+    }
   }
 
   // Sort by frequency, take top N
   return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1])
+    .sort((a, b) => b[1].count - a[1].count)
     .slice(0, maxNames)
     .map(([name]) => name);
 }
