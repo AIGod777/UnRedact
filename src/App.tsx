@@ -229,13 +229,14 @@ IMPORTANT RULES:
             try {
               return await Promise.race([
                 fn(),
-                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Timeout')), 120_000)),
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Timeout')), 300_000)),
               ]);
             } catch (err: any) {
               const isNetworkError =
                 err.message?.toLowerCase().includes('xhr error') ||
                 err.message?.toLowerCase().includes('rpc failed') ||
-                err.message?.toLowerCase().includes('fetch');
+                err.message?.toLowerCase().includes('fetch') ||
+                err.message === 'Timeout';
               if (i === retries || !isNetworkError) throw err;
               console.warn(`Retry ${i + 1} after network error...`);
               await new Promise((resolve) => setTimeout(resolve, 2000 * (i + 1)));
@@ -326,6 +327,9 @@ IMPORTANT RULES:
         ) {
           errorMessage =
             'Network error. The connection to the AI service failed. Please check your internet connection and try again.';
+        } else if (errorMessage.toLowerCase().includes('timeout')) {
+          errorMessage =
+            'The AI analysis timed out. The PDF may be too large or complex. Please try a smaller document.';
         }
 
         setError(errorMessage);
