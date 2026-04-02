@@ -1,6 +1,6 @@
 import { Info, XCircle, Search, Layers, Database, History, FileText, AlertTriangle, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Markdown from 'react-markdown';
 import { parseResult } from '../lib/parseResult';
 import type { ForensicReport, ParsedSegment, Redaction } from '../types';
@@ -33,6 +33,12 @@ export default function ResultsView({
   selectedRedaction,
   setSelectedRedaction,
 }: ResultsViewProps) {
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
+  const scrollRef = useCallback((node: HTMLDivElement | null) => {
+    if (node) node.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, []);
+
   const parsedSegments: ParsedSegment[] = useMemo(
     () => parseResult(result, redactions),
     [result, redactions]
@@ -78,23 +84,47 @@ export default function ResultsView({
               if (part.type === 'text') {
                 return <Markdown key={i}>{part.content}</Markdown>;
               }
+              const isSelected = selectedIndex === i && selectedRedaction;
               return (
-                <button
-                  key={i}
-                  onClick={() =>
-                    setSelectedRedaction({
-                      type: part.type,
-                      content: part.content,
-                      score: part.score!,
-                      method: part.method,
-                      explanation: part.explanation,
-                      alternatives: part.alternatives,
-                    })
-                  }
-                  className={`inline-block px-1 rounded cursor-pointer transition-all ${getSegmentClasses(part.type)}`}
-                >
-                  {part.content}
-                </button>
+                <span key={i} className="inline">
+                  <button
+                    onClick={() => {
+                      if (selectedIndex === i) {
+                        setSelectedIndex(null);
+                        setSelectedRedaction(null);
+                      } else {
+                        setSelectedIndex(i);
+                        setSelectedRedaction({
+                          type: part.type,
+                          content: part.content,
+                          score: part.score!,
+                          method: part.method,
+                          explanation: part.explanation,
+                          alternatives: part.alternatives,
+                        });
+                      }
+                    }}
+                    className={`inline-block px-1 rounded cursor-pointer transition-all ${getSegmentClasses(part.type)}`}
+                  >
+                    {part.content}
+                  </button>
+                  <AnimatePresence>
+                    {isSelected && (
+                      <motion.div
+                        ref={scrollRef}
+                        initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                        className="block my-2 w-full sm:w-72 lg:w-80 p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-zinc-800 border border-zinc-700 shadow-2xl z-30"
+                      >
+                        <RedactionDetail
+                          selectedRedaction={selectedRedaction}
+                          onClose={() => { setSelectedIndex(null); setSelectedRedaction(null); }}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </span>
               );
             })}
           </div>
@@ -106,89 +136,6 @@ export default function ResultsView({
           <ForensicsTab report={forensicReport} />
         )}
 
-        {/* Redaction Info Overlay */}
-        <AnimatePresence>
-          {selectedRedaction && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="fixed sm:absolute bottom-2 left-2 right-2 sm:bottom-6 sm:right-6 sm:left-auto sm:w-72 lg:w-80 p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-zinc-800 border border-zinc-700 shadow-2xl z-30"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Info
-                    className={`w-3.5 h-3.5 ${
-                      selectedRedaction.type === 'recovered' ? 'text-emerald-400'
-                        : selectedRedaction.type === 'inferred' ? 'text-blue-400'
-                        : 'text-amber-400'
-                    }`}
-                  />
-                  <h4 className="text-xs font-semibold uppercase tracking-wider">
-                    {selectedRedaction.type === 'recovered' ? 'Recovered'
-                      : selectedRedaction.type === 'inferred' ? 'Inferred'
-                      : 'AI Guess'}
-                  </h4>
-                </div>
-                <button onClick={() => setSelectedRedaction(null)} className="text-zinc-500 hover:text-zinc-300 active:text-zinc-200 p-1 -mr-1">
-                  <XCircle className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="mb-3">
-                <p className="text-[10px] text-zinc-500 uppercase font-bold mb-0.5">Content</p>
-                <p className="text-xs sm:text-sm text-zinc-200 font-medium">&ldquo;{selectedRedaction.content}&rdquo;</p>
-              </div>
-
-              {selectedRedaction.method && (
-                <div className="mb-3">
-                  <p className="text-[10px] text-zinc-500 uppercase font-bold mb-0.5">Method</p>
-                  <p className="text-xs text-zinc-300">{selectedRedaction.method}</p>
-                </div>
-              )}
-
-              {selectedRedaction.explanation && (
-                <div className="mb-3">
-                  <p className="text-[10px] text-zinc-500 uppercase font-bold mb-0.5">Explanation</p>
-                  <p className="text-xs text-zinc-300 leading-relaxed">{selectedRedaction.explanation}</p>
-                </div>
-              )}
-
-              {selectedRedaction.alternatives && selectedRedaction.alternatives.length > 0 && (
-                <div className="mb-3">
-                  <p className="text-[10px] text-zinc-500 uppercase font-bold mb-1">Alternatives</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {selectedRedaction.alternatives.map((alt: string, i: number) => (
-                      <span key={i} className="px-2 py-0.5 bg-zinc-900 rounded text-[10px] text-zinc-300 border border-zinc-700">{alt}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <div className="flex justify-between items-end mb-1">
-                  <p className="text-[10px] text-zinc-500 uppercase font-bold">Confidence</p>
-                  <p className={`text-xs font-bold ${
-                    selectedRedaction.score > 80 ? 'text-emerald-400'
-                      : selectedRedaction.score > 50 ? 'text-amber-400'
-                      : 'text-red-400'
-                  }`}>{selectedRedaction.score}%</p>
-                </div>
-                <div className="w-full bg-zinc-900 rounded-full h-1.5 overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${selectedRedaction.score}%` }}
-                    className={`h-full rounded-full ${
-                      selectedRedaction.score > 80 ? 'bg-emerald-500'
-                        : selectedRedaction.score > 50 ? 'bg-amber-500'
-                        : 'bg-red-500'
-                    }`}
-                  />
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </div>
   );
@@ -366,6 +313,87 @@ function Field({ label, value }: { label: string; value: string }) {
       <p className="text-[9px] text-zinc-500 uppercase font-bold mb-0.5">{label}</p>
       <p className="text-[11px] text-zinc-300 truncate">{value}</p>
     </div>
+  );
+}
+
+function RedactionDetail({ selectedRedaction, onClose }: {
+  selectedRedaction: NonNullable<ResultsViewProps['selectedRedaction']>;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Info
+            className={`w-3.5 h-3.5 ${
+              selectedRedaction.type === 'recovered' ? 'text-emerald-400'
+                : selectedRedaction.type === 'inferred' ? 'text-blue-400'
+                : 'text-amber-400'
+            }`}
+          />
+          <h4 className="text-xs font-semibold uppercase tracking-wider">
+            {selectedRedaction.type === 'recovered' ? 'Recovered'
+              : selectedRedaction.type === 'inferred' ? 'Inferred'
+              : 'AI Guess'}
+          </h4>
+        </div>
+        <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 active:text-zinc-200 p-1 -mr-1">
+          <XCircle className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="mb-3">
+        <p className="text-[10px] text-zinc-500 uppercase font-bold mb-0.5">Content</p>
+        <p className="text-xs sm:text-sm text-zinc-200 font-medium">&ldquo;{selectedRedaction.content}&rdquo;</p>
+      </div>
+
+      {selectedRedaction.method && (
+        <div className="mb-3">
+          <p className="text-[10px] text-zinc-500 uppercase font-bold mb-0.5">Method</p>
+          <p className="text-xs text-zinc-300">{selectedRedaction.method}</p>
+        </div>
+      )}
+
+      {selectedRedaction.explanation && (
+        <div className="mb-3">
+          <p className="text-[10px] text-zinc-500 uppercase font-bold mb-0.5">Explanation</p>
+          <p className="text-xs text-zinc-300 leading-relaxed">{selectedRedaction.explanation}</p>
+        </div>
+      )}
+
+      {selectedRedaction.alternatives && selectedRedaction.alternatives.length > 0 && (
+        <div className="mb-3">
+          <p className="text-[10px] text-zinc-500 uppercase font-bold mb-1">Alternatives</p>
+          <div className="flex flex-wrap gap-1.5">
+            {selectedRedaction.alternatives.map((alt: string, i: number) => (
+              <span key={i} className="px-2 py-0.5 bg-zinc-900 rounded text-[10px] text-zinc-300 border border-zinc-700">{alt}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <div className="flex justify-between items-end mb-1">
+          <p className="text-[10px] text-zinc-500 uppercase font-bold">Confidence</p>
+          <p className={`text-xs font-bold ${
+            selectedRedaction.score > 80 ? 'text-emerald-400'
+              : selectedRedaction.score > 50 ? 'text-amber-400'
+              : 'text-red-400'
+          }`}>{selectedRedaction.score}%</p>
+        </div>
+        <div className="w-full bg-zinc-900 rounded-full h-1.5 overflow-hidden">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${selectedRedaction.score}%` }}
+            className={`h-full rounded-full ${
+              selectedRedaction.score > 80 ? 'bg-emerald-500'
+                : selectedRedaction.score > 50 ? 'bg-amber-500'
+                : 'bg-red-500'
+            }`}
+          />
+        </div>
+      </div>
+    </>
   );
 }
 
